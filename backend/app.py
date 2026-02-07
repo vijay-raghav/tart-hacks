@@ -92,8 +92,9 @@ Goal: Find *any* potential adverse media, but do not hallucinate if none exists.
 Goal: Verify if the "News Subject" is the same person as the "Client Profile".
 **Constraint Protocol:**
 1. **The "Zero-Result" Guardrail:**
-   - If the search returns 0 results or "No news found", you CANNOT clear the client based on internal knowledge.
+   - If and only if the search returns exactly 0 results or "No news found", you CANNOT clear the client based on internal knowledge.
    - You MUST output Verdict: **'MANUAL REVIEW'** and Reason: "Insufficient external data to verify."
+   - This may ONLY occur if 0 results are found. If any news source is found, you MUST check if it is the same person and return the appropriate verdict.
    
 2. **The "Negative Constraint" Logic (Disprove the Match):**
    - Assume the News Subject is a *different person* until proven otherwise.
@@ -117,7 +118,7 @@ Always output your final answer as a "Decision Card":
 **Verdict:** [No Adverse Media Mentions / Adverse Media Mentions / MANUAL REVIEW]
 **Confidence:** [0-100%]
 **Evidence:** [One sentence explaining the mismatch, e.g., "Client is 24, Suspect is 55."]
-**Sources:** [If "Adverse Media Mentions", you MUST include links and sources of the news articles. If "No Adverse Media Mentions", list "None" or relevant clearings.]
+**Sources:** [List ALL relavant new sources used]
 
 **Draft Memo Requirement:**
 - You must write a 2-sentence regulatory rationale.
@@ -138,8 +139,8 @@ At the very end of your response, you MUST output a single valid JSON block (sur
       "date": "YYYY-MM-DD",
       "url": "https://full-article-url",
       "snippet": "Brief excerpt from the article (1-2 sentences max)",
-      "sentiment": "Positive|Negative|Neutral",
-      "relevanceScore": 0-100
+      "sentiment": "Positive|Negative|Neutral (based only on if the ACTIONS of the article are positive/negative/neutral, regardless of who the article is about)",
+      "relevanceScore": 0-100 (based ONLY on if the person in the article is the same person as the client)
     }
   ]
 }
