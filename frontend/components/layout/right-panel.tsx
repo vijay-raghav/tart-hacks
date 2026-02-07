@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/libf/utils";
 
 interface RightPanelProps {
     analysis: AIAnalysis;
