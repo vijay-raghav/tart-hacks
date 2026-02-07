@@ -11,6 +11,7 @@ from dedalus_labs.lib.runner import DedalusRunner
 
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 # Nessie API Configuration (Capital One Hackathon API)
 NESSIE_BASE_URL = os.getenv("NESSIE_BASE_URL", "http://api.nessieisreal.com")
@@ -91,6 +92,19 @@ async def run_dedalus_agent(initial_input: str):
 
 # --- FastAPI App ---
 app = FastAPI(title="Compliance Adjudication API")
+
+origins = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # 1. Retrieve ALL Customer Information
 @app.get("/customers")
