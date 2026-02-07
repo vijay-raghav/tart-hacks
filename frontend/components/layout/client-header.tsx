@@ -1,7 +1,7 @@
 import { ClientProfile } from "@/app/data";
 import { Badge } from "@/components/ui/badge";
+import { User, MapPin, Briefcase, Calendar, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { User, MapPin, Briefcase, RefreshCw } from "lucide-react";
 import { cn } from "@/libf/utils";
 
 interface ClientHeaderProps {
@@ -11,61 +11,162 @@ interface ClientHeaderProps {
 }
 
 export function ClientHeader({ client, onAnalyze, isAnalyzing }: ClientHeaderProps) {
-    const locationString = typeof client.address === 'string' && client.address.startsWith('{')
-        ? Object.values(JSON.parse(client.address)).join(", ")
-        : typeof client.address === 'object'
-            ? Object.values(client.address).join(", ")
-            : client.address;
+    // Improved parsing: treat as object if possible to preserve city/state in address
+    let displayAddress = "";
+    let displayAge = client.age;
+    let displayOccupation = client.occupation;
+    let displayCitizenship = client.citizenship;
+    let displayTaxResidency = client.taxResidency;
+    let displayTenure = client.tenure;
+    let displayProducts = client.products;
+
+    let addressParts: any[] = [];
+    let source = client.address;
+
+    if (typeof source === 'string' && source.trim().startsWith('{')) {
+        try { source = JSON.parse(source); } catch (e) { }
+    }
+
+    if (typeof source === 'object' && source !== null) {
+        addressParts = Object.values(source);
+    } else {
+        addressParts = [source];
+    }
+
+    const cleanParts = addressParts.map((part: any) => {
+        const s = String(part);
+        if (s.includes('||')) {
+            const split = s.split('||');
+            const main = split[0].trim();
+            split.slice(1).forEach(m => {
+                const lower = m.trim().toLowerCase();
+                if (lower.startsWith('age:')) {
+                    const val = m.split(':')[1]?.trim();
+                    if (val) displayAge = parseInt(val);
+                } else if (lower.startsWith('occupation:') || lower.startsWith('role:')) {
+                    displayOccupation = m.split(':')[1]?.trim();
+                } else if (lower.startsWith('citizen:') || lower.startsWith('citizenship:')) {
+                    displayCitizenship = m.split(':')[1]?.trim();
+                } else if (lower.startsWith('taxresidency:') || lower.startsWith('tax:')) {
+                    displayTaxResidency = m.split(':')[1]?.trim();
+                } else if (lower.startsWith('tenure:')) {
+                    displayTenure = m.split(':')[1]?.trim();
+                } else if (lower.startsWith('products:')) {
+                    displayProducts = m.split(':')[1]?.split(',').map((p: string) => p.trim());
+                }
+            });
+            return main;
+        }
+        return s;
+    });
+
+    displayAddress = cleanParts.join(", ");
+
 
     return (
         <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 shadow-sm">
-            <div className="flex items-center justify-between">
-                <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {/* Main Grid Layout */}
+            <div className="grid grid-cols-4 gap-8 divide-x divide-slate-100 relative">
+
+                {/* 1. ENTITY */}
+                <div className="flex flex-col gap-1 pr-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                        <User size={12} />
+                        Entity
+                    </div>
+                    <div className="flex flex-col">
+                        <h1 className="text-xl font-bold text-slate-900 tracking-tight">
                             {client.first_name} {client.last_name}
                         </h1>
-                        <Badge variant="outline" className={cn(
-                            "text-[10px] px-2 h-5 border",
-                            client.riskRating === 'Low' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                                client.riskRating === 'High' ? "bg-red-50 text-red-700 border-red-200" :
-                                    "bg-amber-50 text-amber-700 border-amber-200"
-                        )}>
-                            {client.riskRating} Risk
-                        </Badge>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-sm text-slate-500">
-                        <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200">
-                                {client.id}
+                        <div className="flex flex-col items-start gap-1.5 mt-2">
+                            <span className="font-mono text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200">
+                                {client.id || client._id}
                             </span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                            <Briefcase size={14} className="text-slate-400" />
-                            <span className="font-medium text-slate-700">{client.occupation}</span>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                            <MapPin size={14} className="text-slate-400" />
-                            <span>{locationString}</span>
+                            <Badge variant="outline" className={cn(
+                                "text-[10px] px-2 h-5 border rounded-full",
+                                client.riskRating === 'Low' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                    client.riskRating === 'High' ? "bg-red-50 text-red-700 border-red-200" :
+                                        "bg-amber-50 text-amber-700 border-amber-200"
+                            )}>
+                                {client.riskRating || "Unknown"} Risk
+                            </Badge>
                         </div>
                     </div>
                 </div>
 
-                {/* Right Action: Re-analyze Button */}
+                {/* 2. DEMOGRAPHICS */}
+                <div className="flex flex-col gap-1 px-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                        Demographics
+                    </div>
+                    <div className="grid grid-cols-[60px_1fr] gap-y-1 text-sm">
+                        <span className="text-slate-500">Age:</span>
+                        <span className="font-medium text-slate-900">{displayAge || "--"}</span>
+
+                        <span className="text-slate-500">Role:</span>
+                        <span className="font-medium text-slate-900 truncate" title={displayOccupation}>{displayOccupation || "--"}</span>
+
+                        <span className="text-slate-500">Citizen:</span>
+                        <span className="font-medium text-slate-900">{displayCitizenship || "--"}</span>
+                    </div>
+                </div>
+
+                {/* 3. LOCATION */}
+                <div className="flex flex-col gap-1 px-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                        <MapPin size={12} />
+                        Location
+                    </div>
+                    <div className="flex flex-col gap-1 text-sm">
+                        <div className="font-medium text-slate-900 line-clamp-2" title={displayAddress}>
+                            {displayAddress}
+                        </div>
+                        <div className="flex gap-2 text-xs">
+                            <span className="text-slate-500">Tax Residency:</span>
+                            <span className="font-medium text-slate-700">{displayTaxResidency || "Same as Location"}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. RELATIONSHIP */}
+                <div className="flex flex-col gap-1 pl-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                        <Briefcase size={12} /> {/* Using Briefcase for Relationship context */}
+                        Relationship
+                    </div>
+                    <div className="flex flex-col gap-2 text-sm">
+                        <div className="flex gap-2">
+                            <span className="text-slate-500">Tenure:</span>
+                            <span className="font-medium text-slate-900">{displayTenure || "--"}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                            {displayProducts && displayProducts.length > 0 ? (
+                                displayProducts.map((prod: string, i: number) => (
+                                    <span key={i} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-medium rounded border border-blue-100">
+                                        {prod}
+                                    </span>
+                                ))
+                            ) : (
+                                <span className="text-slate-400 text-xs italic">No products</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Action: Re-analyze Button - ABSOLUTE POSITIONED */}
                 {onAnalyze && (
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={onAnalyze}
-                        disabled={isAnalyzing}
-                        className="h-8 w-8 p-0 text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
-                        title={isAnalyzing ? "Analyzing..." : "Re-analyze"}
-                    >
-                        <RefreshCw size={14} className={cn(isAnalyzing ? "animate-spin" : "")} />
-                    </Button>
+                    <div className="absolute top-0 right-0">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={onAnalyze}
+                            disabled={isAnalyzing}
+                            className="h-8 w-8 p-0 text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-900 bg-white"
+                            title={isAnalyzing ? "Analyzing..." : "Re-analyze"}
+                        >
+                            <RefreshCw size={14} className={cn(isAnalyzing ? "animate-spin" : "")} />
+                        </Button>
+                    </div>
                 )}
             </div>
         </div>

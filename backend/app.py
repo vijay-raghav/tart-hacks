@@ -65,9 +65,63 @@ At the very end of your response, you MUST output a single valid JSON block (sur
 }
 """
 
+# Helper: Parse hacked fields from street name
+def parse_customer_data(data):
+    """
+    Parses the raw Nessie customer data to extract Age and Occupation 
+    which are hacked into the street_name field with '||' delimiters.
+    """
+    if not data:
+        return None
+        
+    address = data.get('address', {})
+    street_name = address.get('street_name', '')
+    
+    # Defaults
+    age = None
+    occupation = None
+    
+    # Parse "Pine Street || Age: 68 || Occupation: Teacher"
+    if '||' in street_name:
+        parts = street_name.split('||')
+        clean_street = parts[0].strip()
+        
+        # Update address to remove the hacked part
+        address['street_name'] = clean_street
+        data['address'] = address
+        
+        # Extract fields
+        for part in parts[1:]:
+            part = part.strip()
+            lower = part.lower()
+            if lower.startswith('age:'):
+                try:
+                    age = int(part.split(':')[1].strip())
+                except:
+                    pass
+            elif lower.startswith('occupation:') or lower.startswith('role:'):
+                occupation = part.split(':')[1].strip()
+            elif lower.startswith('citizenship:') or lower.startswith('citizen:'):
+                data['citizenship'] = part.split(':')[1].strip()
+            elif lower.startswith('tenure:'):
+                data['tenure'] = part.split(':')[1].strip()
+            elif lower.startswith('products:'):
+                products_str = part.split(':')[1].strip()
+                data['products'] = [p.strip() for p in products_str.split(',')]
+            elif lower.startswith('taxresidency:') or lower.startswith('tax:'):
+                data['taxResidency'] = part.split(':')[1].strip()
+    
+    # Inject into top-level
+    if age:
+        data['age'] = age
+    if occupation:
+        data['occupation'] = occupation
+        
+    return data
+
 async def get_customer_profile(customer_id: str) -> str:
     """
-    Retrieves the legal name and address of a customer from Nessie.
+    Retrieves the legal name, address, age, and occupation of a customer from Nessie.
     Use this to identify the person before running news searches.
     """
     print(customer_id)
@@ -75,8 +129,17 @@ async def get_customer_profile(customer_id: str) -> str:
     async with httpx.AsyncClient() as client:
         resp = await client.get(url)
         if resp.status_code == 200:
-            data = resp.json()
-            return f"Name: {data.get('first_name')} {data.get('last_name')}, Address: {data.get('address')}"
+            data = parse_customer_data(resp.json())
+            
+            profile = f"Name: {data.get('first_name')} {data.get('last_name')}"
+            profile += f", Address: {data.get('address')}"
+            
+            if data.get('age'):
+                profile += f", Age: {data.get('age')}"
+            if data.get('occupation'):
+                profile += f", Occupation: {data.get('occupation')}"
+                
+            return profile
         return f"Error: Customer {customer_id} not found."
     
 
@@ -132,7 +195,11 @@ async def get_all_customers():
     url = f"{NESSIE_BASE_URL}/customers?key={NESSIE_API_KEY}"
     async with httpx.AsyncClient() as client:
         resp = await client.get(url)
-        return resp.json() if resp.status_code == 200 else {"error": "Failed to fetch customers"}
+        if resp.status_code == 200:
+            customers = resp.json()
+            # Parse all customers
+            return [parse_customer_data(c) for c in customers]
+        return {"error": "Failed to fetch customers"}
 
 # 2. Retrieve Raw Data for Single Customer
 @app.get("/customers/{customer_id}")
@@ -141,7 +208,9 @@ async def get_single_customer(customer_id: str):
     url = f"{NESSIE_BASE_URL}/customers/{customer_id}?key={NESSIE_API_KEY}"
     async with httpx.AsyncClient() as client:
         resp = await client.get(url)
-        return resp.json() if resp.status_code == 200 else {"error": "Customer not found"}
+        if resp.status_code == 200:
+            return parse_customer_data(resp.json())
+        return {"error": "Customer not found"}
 
 # 3. Stream Agent Adjudication
 @app.get("/adjudicate/{customer_id}")

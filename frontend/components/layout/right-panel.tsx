@@ -51,34 +51,37 @@ export function RightPanel({ analysis, runAdjudication, isAnalyzing }: RightPane
             </div>
 
             {/* Reasoning Trace (Scrollable) */}
-            <ScrollArea className="flex-1 p-4">
-
-                {/* Live Summary Stream */}
-                <div className="flex gap-3 mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                    <div className="mt-0.5 text-blue-600">
-                        {isAnalyzing ? (
-                            <div className="h-4 w-4 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
-                        ) : (
-                            <CheckCircle2 size={16} />
-                        )}
-                    </div>
-                    <div className="w-full">
-                        <p className="text-xs font-medium text-slate-700 mb-2">Live Reasoning</p>
-                        <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-3 text-sm text-slate-800 leading-relaxed shadow-sm prose prose-sm max-w-none prose-blue prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0">
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                    a: ({ node, ...props }) => (
-                                        <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline" />
-                                    )
-                                }}
-                            >
-                                {analysis?.summary || "Initializing agent..."}
-                            </ReactMarkdown>
+            <div className="flex-1 min-h-0 relative">
+                <ScrollArea className="h-full w-full">
+                    <div className="p-4 safe-area-bottom">
+                        {/* Live Summary Stream */}
+                        <div className="flex gap-3 mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="mt-0.5 text-blue-600 flex-shrink-0">
+                                {isAnalyzing ? (
+                                    <div className="h-4 w-4 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+                                ) : (
+                                    <CheckCircle2 size={16} />
+                                )}
+                            </div>
+                            <div className="w-full min-w-0">
+                                <p className="text-xs font-medium text-slate-700 mb-2">Live Reasoning</p>
+                                <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-3 text-sm text-slate-800 leading-relaxed shadow-sm prose prose-sm max-w-none prose-blue prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0 break-words">
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                            a: ({ node, ...props }) => (
+                                                <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline break-all" />
+                                            )
+                                        }}
+                                    >
+                                        {analysis?.summary || "Initializing agent..."}
+                                    </ReactMarkdown>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </ScrollArea>
+                </ScrollArea>
+            </div>
         </div>
     );
 }
