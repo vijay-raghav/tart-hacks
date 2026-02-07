@@ -13,7 +13,7 @@ export default function Home() {
   const [analysisResults, setAnalysisResults] = useState<Record<string, { analysis: AIAnalysis, summary: SummaryCardData | null }>>({});
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sentinel-gva5.onrender.com/';
 
   // Derived State for Current View
   const currentResult = analysisResults[selectedUser];
