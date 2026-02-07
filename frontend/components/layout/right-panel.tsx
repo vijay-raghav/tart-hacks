@@ -166,6 +166,54 @@ export function RightPanel({ analysis, runAdjudication, isAnalyzing, events = []
                         )}
                     </div>
                 </ScrollArea>
+
+              {/* Action Buttons */}
+                    <div className="flex-shrink-0 border-t border-slate-200 bg-white p-3 relative z-30">
+                        <div className="flex gap-2">
+                            <button
+                                className="flex-1 px-3 py-1.5 text-sm rounded-md border border-blue-400 font-medium transition-all duration-200"
+                                style={{
+                                    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                                    color: 'rgb(37 99 235)',
+                                    boxShadow: '0 0 8px rgba(59, 130, 246, 0.15)',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.12)';
+                                    e.currentTarget.style.borderColor = 'rgb(37 99 235)';
+                                    e.currentTarget.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.25)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+                                    e.currentTarget.style.borderColor = 'rgb(96 165 250)';
+                                    e.currentTarget.style.boxShadow = '0 0 8px rgba(59, 130, 246, 0.15)';
+                                }}
+                                onClick={() => console.log("Close case clicked")}
+                            >
+                                Close Case
+                            </button>
+                            <button
+                                className="flex-1 px-3 py-1.5 text-sm rounded-md border border-red-400 font-medium transition-all duration-200"
+                                style={{
+                                    backgroundColor: 'rgba(239, 68, 68, 0.30)',
+                                    color: 'rgb(200 50 50)',
+                                    boxShadow: '0 0 8px rgba(239, 68, 68, 0.15)',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.50)';
+                                    e.currentTarget.style.borderColor = 'rgb(220 38 38)';
+                                    e.currentTarget.style.boxShadow = '0 0 12px rgba(239, 68, 68, 0.25)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.30)';
+                                    e.currentTarget.style.borderColor = 'rgb(248 113 113)';
+                                    e.currentTarget.style.boxShadow = '0 0 8px rgba(239, 68, 68, 0.15)';
+                                }}
+                                onClick={() => console.log("Escalate clicked")}
+                            >
+                                Escalate
+                            </button>
+                        </div>
+                    </div>
             </div>
         </div>
     );
