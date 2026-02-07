@@ -1,6 +1,7 @@
 // components/layout/right-panel.tsx
 "use client";
 
+import { useEffect, useRef } from "react"; // Added imports
 import { AIAnalysis } from "@/app/data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,21 +34,26 @@ function formatTime(ts: number) {
 
 function pickToolIcon(title: string, rawToolName?: string) {
     const s = `${title} ${rawToolName ?? ""}`.toLowerCase();
-
-    // Search tools
     if (s.includes("exa") || s.includes("web search") || s.includes("search")) return Search;
-
-    // DB / profile / banking
     if (s.includes("db") || s.includes("database") || s.includes("profile") || s.includes("nessie")) return Database;
-
-    // Fallback
     return Wrench;
 }
 
 export function RightPanel({ analysis, runAdjudication, isAnalyzing, events = [] }: RightPanelProps) {
     const hasAnything = (events?.length ?? 0) > 0 || !!analysis || !!isAnalyzing;
+    
+    // 1. Create a reference for the bottom of the list
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // 2. Auto-scroll whenever 'events' change
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [events]);
 
     if (!hasAnything && !isAnalyzing) {
+        // ... (Empty state remains unchanged) ...
         return (
             <div className="w-[350px] border-l border-slate-200 bg-white flex flex-col h-full shadow-xl shadow-slate-200/50 z-20 items-center justify-center p-6 text-center">
                 <div className="mb-4 text-slate-400">
@@ -98,8 +104,7 @@ export function RightPanel({ analysis, runAdjudication, isAnalyzing, events = []
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {(events ?? []).map((e) => {
-                                    // TEXT: big card
+                                {events.map((e) => {
                                     if (e.kind === "text") {
                                         return (
                                             <div
@@ -135,22 +140,16 @@ export function RightPanel({ analysis, runAdjudication, isAnalyzing, events = []
                                         );
                                     }
 
-                                    // TOOL ROW: icon only (no spinner, no warning)
                                     if (e.kind === "tool") {
                                         const ToolIcon = pickToolIcon(e.title, e.rawToolName);
-
                                         return (
                                             <div key={e.id} className="flex items-start gap-2">
                                                 <div className="mt-[2px] flex-shrink-0">
                                                     <ToolIcon size={16} className="text-slate-500" />
                                                 </div>
-
                                                 <div className="min-w-0 flex-1">
-                                                    {/* Added 'justify-between' to push content apart */}
                                                     <div className="flex items-center justify-between gap-2 min-w-0">
                                                         <p className="text-xs text-slate-700 truncate">{e.title}</p>
-
-                                                        {/* Added 'whitespace-nowrap' and 'flex-shrink-0' so time doesn't wrap or get crushed */}
                                                         <div className="text-[11px] text-slate-400 flex-shrink-0 whitespace-nowrap">
                                                             {formatTime(e.ts)}
                                                         </div>
@@ -159,66 +158,14 @@ export function RightPanel({ analysis, runAdjudication, isAnalyzing, events = []
                                             </div>
                                         );
                                     }
-
-                                    // (Run events not expected; safe fallback)
                                     return null;
                                 })}
+                                {/* 3. The Invisible Anchor Div */}
+                                <div ref={messagesEndRef} />
                             </div>
                         )}
                     </div>
                 </ScrollArea>
-            </div>
-
-            {/* Action Buttons - Always Visible */}
-            <div className="flex-shrink-0 border-t border-slate-200 bg-white p-3 relative z-30">
-                <div className="flex gap-2">
-                    <button
-                        className="flex-1 px-3 py-1.5 text-sm rounded-md border border-blue-400 font-medium transition-all duration-200"
-                        style={{
-                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                            color: 'rgb(37 99 235)',
-                            boxShadow: '0 0 8px rgba(59, 130, 246, 0.15)',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.12)';
-                            e.currentTarget.style.borderColor = 'rgb(37 99 235)';
-                            e.currentTarget.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.25)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
-                            e.currentTarget.style.borderColor = 'rgb(96 165 250)';
-                            e.currentTarget.style.boxShadow = '0 0 8px rgba(59, 130, 246, 0.15)';
-                        }}
-                        onClick={() => {
-                            console.log("Close case clicked");
-                        }}
-                    >
-                        Close Case
-                    </button>
-                    <button
-                        className="flex-1 px-3 py-1.5 text-sm rounded-md border border-red-400 font-medium transition-all duration-200"
-                        style={{
-                            backgroundColor: 'rgba(239, 68, 68, 0.30)',
-                            color: 'rgb(200 50 50)',
-                            boxShadow: '0 0 8px rgba(239, 68, 68, 0.15)',
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.50)';
-                            e.currentTarget.style.borderColor = 'rgb(220 38 38)';
-                            e.currentTarget.style.boxShadow = '0 0 12px rgba(239, 68, 68, 0.25)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.30)';
-                            e.currentTarget.style.borderColor = 'rgb(248 113 113)';
-                            e.currentTarget.style.boxShadow = '0 0 8px rgba(239, 68, 68, 0.15)';
-                        }}
-                        onClick={() => {
-                            console.log("Escalate clicked");
-                        }}
-                    >
-                        Escalate
-                    </button>
-                </div>
             </div>
         </div>
     );
