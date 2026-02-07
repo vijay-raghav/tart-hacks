@@ -9,9 +9,10 @@ interface ClientHeaderProps {
     onAnalyze?: () => void;
     isAnalyzing?: boolean;
     analysisStatus?: SummaryCardData;
+    caseAction?: "closed" | "escalated";
 }
 
-export function ClientHeader({ client, onAnalyze, isAnalyzing, analysisStatus }: ClientHeaderProps) {
+export function ClientHeader({ client, onAnalyze, isAnalyzing, analysisStatus, caseAction }: ClientHeaderProps) {
     // Improved parsing: treat as object if possible to preserve city/state in address
     let displayAddress = "";
     let displayAge = client.age;
@@ -63,12 +64,20 @@ export function ClientHeader({ client, onAnalyze, isAnalyzing, analysisStatus }:
 
     displayAddress = cleanParts.join(", ");
 
-    // Determine status badge based on backend output
-    // Backend outputs: "YES" (adverse media found), "NO" (clear), or "MANUAL REVIEW"
+    // Determine status badge - case actions take priority
     let statusColor = "bg-blue-100 text-blue-600 border-blue-200";
     let statusText = "Pending";
 
-    if (analysisStatus) {
+    if (caseAction === "closed") {
+        // Case has been closed
+        statusColor = "bg-slate-100 text-slate-700 border-slate-200";
+        statusText = "Closed";
+    } else if (caseAction === "escalated") {
+        // Case has been escalated
+        statusColor = "bg-red-100 text-red-700 border-red-200";
+        statusText = "Escalated";
+    } else if (analysisStatus) {
+        // Show analysis status if no case action
         const status = analysisStatus.status;
 
         if (status === "NO") {
@@ -178,10 +187,20 @@ export function ClientHeader({ client, onAnalyze, isAnalyzing, analysisStatus }:
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={onAnalyze}
-                            disabled={isAnalyzing}
+                            onClick={() => {
+                                if (!caseAction && !isAnalyzing) {
+                                    onAnalyze();
+                                }
+                            }}
+                            disabled={isAnalyzing || !!caseAction}
                             className="h-8 w-8 p-0 text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-900 bg-white"
-                            title={isAnalyzing ? "Analyzing..." : "Re-analyze"}
+                            title={
+                                caseAction
+                                    ? `Case ${caseAction} - cannot re-analyze`
+                                    : isAnalyzing
+                                        ? "Analyzing..."
+                                        : "Re-analyze"
+                            }
                         >
                             <RefreshCw size={14} className={cn(isAnalyzing ? "animate-spin" : "")} />
                         </Button>

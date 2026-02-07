@@ -180,7 +180,8 @@ function ArticleCard({ article }: { article: Article }) {
                         href={article.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-blue-600 p-2"
+                        className="text-slate-400 hover:text-blue-600 transition-colors p-2"
+                        title="Open article in new tab"
                     >
                         <ExternalLink size={16} />
                     </a>

@@ -14,6 +14,7 @@ interface SidebarProps {
     setSelectedUser: (id: string) => void;
     isAnalyzing: boolean;
     analysisResults?: Record<string, { analysis: AIAnalysis, summary: any }>;
+    caseActions?: Record<string, "closed" | "escalated">;
 }
 
 
@@ -22,7 +23,8 @@ export function Sidebar({
     selectedUser,
     setSelectedUser,
     isAnalyzing,
-    analysisResults
+    analysisResults,
+    caseActions = {}
 }: SidebarProps) {
     return (
         <div className="w-[300px] border-r bg-white flex flex-col h-full border-slate-200">
@@ -59,13 +61,22 @@ export function Sidebar({
                             const isSelected = customer._id === selectedUser;
                             const result = analysisResults?.[customer._id];
                             const summaryData = result?.summary;
+                            const caseAction = caseActions?.[customer._id];
 
-                            // Determine status badge based on backend output
-                            // Backend outputs: "YES" (adverse media found), "NO" (clear), or "MANUAL REVIEW")
+                            // Determine status badge - case actions take priority
                             let statusColor = "bg-blue-100 text-blue-600 border-blue-200"; // Not analyzed
                             let statusText = "Pending";
 
-                            if (summaryData) {
+                            if (caseAction === "closed") {
+                                // Case has been closed
+                                statusColor = "bg-slate-100 text-slate-700 border-slate-200";
+                                statusText = "Closed";
+                            } else if (caseAction === "escalated") {
+                                // Case has been escalated
+                                statusColor = "bg-red-100 text-red-700 border-red-200";
+                                statusText = "Escalated";
+                            } else if (summaryData) {
+                                // Show analysis status if no case action
                                 const status = summaryData.status;
 
                                 if (status === "NO") {

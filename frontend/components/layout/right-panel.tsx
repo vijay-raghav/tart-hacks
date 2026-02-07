@@ -11,6 +11,7 @@ import { cn } from "@/libf/utils";
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { toast } from "sonner";
 
 type RightPanelEvent =
     | { id: string; kind: "run"; title: string; status: "running" | "complete"; ts: number }
@@ -22,6 +23,9 @@ interface RightPanelProps {
     runAdjudication?: () => void;
     isAnalyzing?: boolean;
     events?: RightPanelEvent[];
+    onCloseCase?: () => void;
+    onEscalate?: () => void;
+    caseAction?: "closed" | "escalated";
 }
 
 function formatTime(ts: number) {
@@ -39,8 +43,9 @@ function pickToolIcon(title: string, rawToolName?: string) {
     return Wrench;
 }
 
-export function RightPanel({ analysis, runAdjudication, isAnalyzing, events = [] }: RightPanelProps) {
+export function RightPanel({ analysis, runAdjudication, isAnalyzing, events = [], onCloseCase, onEscalate, caseAction }: RightPanelProps) {
     const hasAnything = (events?.length ?? 0) > 0 || !!analysis || !!isAnalyzing;
+    const isCaseFinalized = !!caseAction; // Case is finalized if there's a case action
 
     // 1. Create a reference for the bottom of the list
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -168,52 +173,84 @@ export function RightPanel({ analysis, runAdjudication, isAnalyzing, events = []
                 </ScrollArea>
             </div>
             {/* Action Buttons */}
-                    <div className="flex-shrink-0 border-t border-slate-200 bg-white p-3 relative z-30">
-                        <div className="flex gap-2">
-                            <button
-                                className="flex-1 px-3 py-1.5 text-sm rounded-md border border-blue-400 font-medium transition-all duration-200"
-                                style={{
-                                    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                                    color: 'rgb(37 99 235)',
-                                    boxShadow: '0 0 8px rgba(59, 130, 246, 0.15)',
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.12)';
-                                    e.currentTarget.style.borderColor = 'rgb(37 99 235)';
-                                    e.currentTarget.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.25)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
-                                    e.currentTarget.style.borderColor = 'rgb(96 165 250)';
-                                    e.currentTarget.style.boxShadow = '0 0 8px rgba(59, 130, 246, 0.15)';
-                                }}
-                                onClick={() => console.log("Close case clicked")}
-                            >
-                                Close Case
-                            </button>
-                            <button
-                                className="flex-1 px-3 py-1.5 text-sm rounded-md border border-red-400 font-medium transition-all duration-200"
-                                style={{
-                                    backgroundColor: 'rgba(239, 68, 68, 0.30)',
-                                    color: 'rgb(200 50 50)',
-                                    boxShadow: '0 0 8px rgba(239, 68, 68, 0.15)',
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.50)';
-                                    e.currentTarget.style.borderColor = 'rgb(220 38 38)';
-                                    e.currentTarget.style.boxShadow = '0 0 12px rgba(239, 68, 68, 0.25)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.30)';
-                                    e.currentTarget.style.borderColor = 'rgb(248 113 113)';
-                                    e.currentTarget.style.boxShadow = '0 0 8px rgba(239, 68, 68, 0.15)';
-                                }}
-                                onClick={() => console.log("Escalate clicked")}
-                            >
-                                Escalate
-                            </button>
-                        </div>
-                    </div>
+            <div className="flex-shrink-0 border-t border-slate-200 bg-white p-3 relative z-30">
+                <div className="flex gap-2">
+                    <button
+                        disabled={isCaseFinalized}
+                        className="flex-1 px-3 py-1.5 text-sm rounded-md border border-blue-400 font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            color: 'rgb(37 99 235)',
+                            boxShadow: '0 0 8px rgba(59, 130, 246, 0.15)',
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!isCaseFinalized) {
+                                e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.12)';
+                                e.currentTarget.style.borderColor = 'rgb(37 99 235)';
+                                e.currentTarget.style.boxShadow = '0 0 12px rgba(59, 130, 246, 0.25)';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!isCaseFinalized) {
+                                e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+                                e.currentTarget.style.borderColor = 'rgb(96 165 250)';
+                                e.currentTarget.style.boxShadow = '0 0 8px rgba(59, 130, 246, 0.15)';
+                            }
+                        }}
+                        onClick={() => {
+                            if (!isCaseFinalized) {
+                                onCloseCase?.();
+                                toast.success("Successfully closed case", {
+                                    style: {
+                                        background: 'rgb(59 130 246)',
+                                        color: 'white',
+                                        border: '1px solid rgb(37 99 235)'
+                                    }
+                                });
+                            }
+                        }}
+                    >
+                        Close Case
+                    </button>
+                    <button
+                        disabled={isCaseFinalized}
+                        className="flex-1 px-3 py-1.5 text-sm rounded-md border border-red-400 font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{
+                            backgroundColor: 'rgba(239, 68, 68, 0.30)',
+                            color: 'rgb(200 50 50)',
+                            boxShadow: '0 0 8px rgba(239, 68, 68, 0.15)',
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!isCaseFinalized) {
+                                e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.50)';
+                                e.currentTarget.style.borderColor = 'rgb(220 38 38)';
+                                e.currentTarget.style.boxShadow = '0 0 12px rgba(239, 68, 68, 0.25)';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!isCaseFinalized) {
+                                e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.30)';
+                                e.currentTarget.style.borderColor = 'rgb(248 113 113)';
+                                e.currentTarget.style.boxShadow = '0 0 8px rgba(239, 68, 68, 0.15)';
+                            }
+                        }}
+                        onClick={() => {
+                            if (!isCaseFinalized) {
+                                onEscalate?.();
+                                toast.error("Successfully escalated case", {
+                                    style: {
+                                        background: 'rgb(239 68 68)',
+                                        color: 'white',
+                                        border: '1px solid rgb(220 38 38)'
+                                    }
+                                });
+                            }
+                        }}
+                    >
+                        Escalate
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

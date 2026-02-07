@@ -98,6 +98,9 @@ export default function Home() {
   const [analysisResults, setAnalysisResults] = useState<Record<string, AnalysisResult>>({});
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
 
+  // Track case actions: "closed" or "escalated"
+  const [caseActions, setCaseActions] = useState<Record<string, "closed" | "escalated">>({});
+
   const API_URL = "http://127.0.0.1:8000";
 
   const currentResult = analysisResults[selectedUser];
@@ -408,6 +411,14 @@ export default function Home() {
     }
   };
 
+  const handleCloseCase = () => {
+    setCaseActions(prev => ({ ...prev, [selectedUser]: "closed" }));
+  };
+
+  const handleEscalate = () => {
+    setCaseActions(prev => ({ ...prev, [selectedUser]: "escalated" }));
+  };
+
   return (
     <WorkbenchLayout
       customers={userData}
@@ -418,6 +429,9 @@ export default function Home() {
       runAdjudication={() => runAdjudication(selectedUser, true)}
       isAnalyzing={isAnalyzing}
       rightPanelEvents={rightPanelEvents}
+      caseActions={caseActions}
+      onCloseCase={handleCloseCase}
+      onEscalate={handleEscalate}
     >
       <EvidenceFeed
         articles={aiAnalysis?.articles || []}
