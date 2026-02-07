@@ -1,14 +1,21 @@
 "use client";
 
 import { cn } from "@/libf/utils";
-import { mockQueue } from "@/app/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ShieldAlert } from "lucide-react";
+import { Customer } from "@/app/data";
 
-export function Sidebar() {
+interface SidebarProps {
+    customers: Customer[];
+    selectedUser: string;
+    setSelectedUser: any;
+}
+
+
+export function Sidebar({ customers, selectedUser, setSelectedUser } : SidebarProps) {
     return (
         <div className="w-[280px] border-r bg-white flex flex-col h-full border-slate-200">
             {/* Header */}
@@ -41,22 +48,27 @@ export function Sidebar() {
             {/* Queue List */}
             <ScrollArea className="flex-1 px-3 pb-4">
                 <div className="space-y-2 mt-2">
-                    {mockQueue.map((item) => (
+                    {Object.keys(customers).map((id: string) => {
+                        customers[id].alertType = "Adverse Media";
+                        customers[id].status = id == selectedUser ? "active" : "non-active"
+                        let item = customers[id];
+                        return (
                         <div
-                            key={item.id}
+                            key={id}
                             className={cn(
                                 "p-3 rounded-lg border text-sm cursor-pointer transition-colors relative",
                                 item.status === "active"
                                     ? "bg-blue-50/60 border-blue-200"
                                     : "bg-white border-slate-100 hover:border-slate-300 hover:shadow-sm"
                             )}
+                            onClick={() => {setSelectedUser(id)}}
                         >
                             {item.status === "active" && (
                                 <div className="absolute left-0 top-3 bottom-3 w-1 bg-blue-500 rounded-r-md" />
                             )}
 
                             <div className="flex justify-between items-start mb-1.5 ml-1">
-                                <span className="font-semibold text-slate-900">{item.name}</span>
+                                <span className="font-semibold text-slate-900">{item.first_name} {item.last_name}</span>
                                 {item.status === "active" && <span className="h-2 w-2 rounded-full bg-blue-500 mt-1.5" />}
                             </div>
 
@@ -69,15 +81,9 @@ export function Sidebar() {
                                 )}>
                                     {item.alertType}
                                 </Badge>
-                                <span className={cn(
-                                    "text-[10px] ml-auto font-medium",
-                                    item.status === "active" ? "text-red-600" : "text-slate-400"
-                                )}>
-                                    {item.sla}
-                                </span>
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </div>
             </ScrollArea>
         </div>

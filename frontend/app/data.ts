@@ -20,6 +20,11 @@ export interface Article {
     mismatchHighlight?: string;
 }
 
+export interface Customer {
+    first_name: string;
+    last_name: string;
+}
+
 export interface AIAnalysis {
     summary: string;
     confidence: number;

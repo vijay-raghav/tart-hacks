@@ -16,7 +16,7 @@ export function ClientHeader({ client }: ClientHeaderProps) {
                         <User size={14} />
                         Entity
                     </div>
-                    <div className="font-bold text-slate-900 text-lg leading-tight">{client.name}</div>
+                    <div className="font-bold text-slate-900 text-lg leading-tight">{client.first_name} {client.last_name}</div>
                     <div className="flex items-center gap-2 mt-1">
                         <span className="font-mono text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">{client.id}</span>
                         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-1.5 h-5">
@@ -44,11 +44,11 @@ export function ClientHeader({ client }: ClientHeaderProps) {
                         <MapPin size={14} />
                         Location
                     </div>
-                    <div className="text-sm font-medium text-slate-900">{client.address}</div>
+                    <div className="text-sm font-medium text-slate-900">{Object.values(JSON.parse(client.address)).join(" ")}</div>
                     <div className="text-xs text-slate-500 mt-0.5">Tax Residency: <span className="text-slate-700 font-medium">{client.taxResidency}</span></div>
                 </div>
 
-                {/* Col 4: Relationship */}
+                {/* {/ Col 4: Relationship /}
                 <div className="space-y-1 border-l border-slate-100 pl-4">
                     <div className="flex items-center gap-2 text-slate-500 text-xs uppercase tracking-wider font-semibold">
                         <CreditCard size={14} />
@@ -64,7 +64,7 @@ export function ClientHeader({ client }: ClientHeaderProps) {
                             </span>
                         ))}
                     </div>
-                </div>
+                </div> */}
             </div>
         </div>
     );
