@@ -113,7 +113,6 @@ export default function Home() {
     fetch(`${API_URL}/customers`)
       .then(r => r.json())
       .then((data: ClientProfile[]) => {
-        console.log(data);
         const usersById = data.reduce((acc: Record<string, ClientProfile>, user) => {
           acc[user._id] = {
             ...user,
