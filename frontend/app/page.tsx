@@ -98,7 +98,7 @@ export default function Home() {
   const [analysisResults, setAnalysisResults] = useState<Record<string, AnalysisResult>>({});
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
 
-  const API_URL = "https://sentinel-gva5.onrender.com/" //"http://127.0.0.1:8000";
+  const API_URL = "http://127.0.0.1:8000";
 
   const currentResult = analysisResults[selectedUser];
   const aiAnalysis = currentResult?.analysis || null;
@@ -110,6 +110,7 @@ export default function Home() {
     fetch(`${API_URL}/customers`)
       .then(r => r.json())
       .then((data: ClientProfile[]) => {
+        console.log(data);
         const usersById = data.reduce((acc: Record<string, ClientProfile>, user) => {
           acc[user._id] = {
             ...user,
@@ -239,7 +240,11 @@ export default function Home() {
             [customerId]: {
               ...cur,
               events,
-              analysis: { ...cur.analysis, summary: fullDisplayText },
+              analysis: {
+                ...cur.analysis,
+                summary: fullDisplayText,
+                articles: newSummaryData?.articles || cur.analysis.articles
+              },
               summary: newSummaryData || cur.summary
             }
           };
@@ -250,7 +255,7 @@ export default function Home() {
         if (!delta) return;
         rawText += delta;
 
-        // Parse json block (same as before)
+        // Parse complete json block
         const jsonMatch = rawText.match(/```json\n([\s\S]*?)\n```/);
         let displayText = rawText;
         let newSummaryData: SummaryCardData | null = null;
@@ -260,7 +265,15 @@ export default function Home() {
             newSummaryData = JSON.parse(jsonMatch[1]);
             displayText = rawText.replace(jsonMatch[0], "").trim();
           } catch {
-            // incomplete JSON
+            // incomplete JSON - still hide it
+            displayText = rawText.replace(jsonMatch[0], "").trim();
+          }
+        } else {
+          // Check if we're in the middle of a JSON block (started but not finished)
+          const jsonStart = rawText.indexOf("```json");
+          if (jsonStart !== -1) {
+            // Hide everything from ```json onwards
+            displayText = rawText.substring(0, jsonStart).trim();
           }
         }
 
@@ -323,7 +336,11 @@ export default function Home() {
               ...prev,
               [customerId]: {
                 ...cur,
-                analysis: { ...cur.analysis, summary: shownText },
+                analysis: {
+                  ...cur.analysis,
+                  summary: shownText,
+                  articles: newSummaryData?.articles || cur.analysis.articles
+                },
                 summary: newSummaryData || cur.summary
               }
             };
@@ -340,6 +357,10 @@ export default function Home() {
               ...prev,
               [customerId]: {
                 ...cur,
+                analysis: {
+                  ...cur.analysis,
+                  articles: newSummaryData?.articles || cur.analysis.articles
+                },
                 summary: newSummaryData
               }
             };

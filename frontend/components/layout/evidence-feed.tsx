@@ -163,9 +163,16 @@ function ArticleCard({ article }: { article: Article }) {
                         </div>
                     </div>
                 </div>
-                <button className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-blue-600 p-2">
-                    <ExternalLink size={16} />
-                </button>
+                {article.url && (
+                    <a
+                        href={article.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-blue-600 p-2"
+                    >
+                        <ExternalLink size={16} />
+                    </a>
+                )}
             </CardHeader>
             <CardContent className="p-4 pt-2">
                 {renderSnippet(article.snippet, article.mismatchHighlight)}

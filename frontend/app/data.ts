@@ -16,6 +16,7 @@ export interface ClientProfile {
 export interface Article {
     source: string;
     date: string;
+    url?: string;
     snippet: string;
     sentiment: "Positive" | "Negative" | "Neutral";
     relevanceScore: number;
@@ -37,6 +38,7 @@ export interface SummaryCardData {
     status: "Positive" | "Negative";
     match_score: string | number;
     description: string;
+    articles?: Article[];
 }
 
 export interface CaseData {
