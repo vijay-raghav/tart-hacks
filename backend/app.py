@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import json, time
 from fastapi.responses import StreamingResponse
 from fastapi.encoders import jsonable_encoder
+from itertools import cycle
 
 
 load_dotenv() 
@@ -20,6 +21,35 @@ from fastapi.middleware.cors import CORSMiddleware
 # Nessie API Configuration (Capital One Hackathon API)
 NESSIE_BASE_URL = os.getenv("NESSIE_BASE_URL", "http://api.nessieisreal.com")
 NESSIE_API_KEY = os.getenv("NESSIE_API_KEY")
+
+# Dedalus API Key Rotation
+# Supports DEDALUS_API_KEY_1, _2, _3
+DEDALUS_KEYS = []
+for i in range(1, 4):
+    k = os.getenv(f"DEDALUS_API_KEY_{i}")
+    if k:
+        DEDALUS_KEYS.append(k.strip())
+
+# Fallback to single key if no numbered keys found
+if not DEDALUS_KEYS:
+    single_key = os.getenv("DEDALUS_API_KEY")
+    if single_key:
+        DEDALUS_KEYS.append(single_key.strip())
+
+if not DEDALUS_KEYS:
+    print("WARNING: No DEDALUS_API_KEY found.")
+    DEDALUS_KEYS = ["missing-key"]
+else:
+    print(f"✓ Loaded {len(DEDALUS_KEYS)} Dedalus API key(s)")
+
+_key_cycle = cycle(DEDALUS_KEYS)
+
+def get_next_api_key():
+    """Rotates through the available API keys."""
+    key = next(_key_cycle)
+    print(f"Using API Key ending in ...{key[-4:]}")
+    return key
+
 
 # Agent Configuration
 MODEL_ID = os.getenv("MODEL_ID", "anthropic/claude-opus-4-5")
@@ -67,6 +97,8 @@ At the very end of your response, you MUST output a single valid JSON block (sur
   "match_score": "A score from 0-100 indicating how strong the match is",
   "description": "A very concise 1-sentence summary of the finding."
 }
+
+CRITICAL RULE: If the Search Tool returns 0 results, you CANNOT clear the subject. You must return Verdict: 'MANUAL REVIEW'. Reason: 'Insufficient external data to verify identity.
 """
 
 # Helper: Parse hacked fields from street name
@@ -149,7 +181,8 @@ async def get_customer_profile(customer_id: str) -> str:
 
 async def run_dedalus_agent(initial_input: str):
     """Initializes and runs the Dedalus agent for a single turn."""
-    client = AsyncDedalus()
+    # Use rotated key
+    client = AsyncDedalus(api_key=get_next_api_key())
     runner = DedalusRunner(client, verbose=False)
 
     messages = [{"role": "user", "content": initial_input}]
@@ -222,54 +255,60 @@ def sse(event_type: str, data: dict) -> str:
 @app.get("/adjudicate/{customer_id}")
 async def adjudicate_customer(customer_id: str):
     async def event_generator():
-        client = AsyncDedalus()
-        runner = DedalusRunner(client, verbose=False)
+        try:
+            # Use rotated key for each request
+            client = AsyncDedalus(api_key=get_next_api_key())
+            runner = DedalusRunner(client, verbose=False)
 
-        stream = runner.run(
-            instructions=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": f"Investigate Customer ID: {customer_id}"}],
-            mcp_servers=MCP_SERVERS,
-            model=MODEL_ID,
-            tools=[get_customer_profile],
-            max_steps=10,
-            stream=True,
-        )
+            stream = runner.run(
+                instructions=SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": f"Investigate Customer ID: {customer_id}"}],
+                mcp_servers=MCP_SERVERS,
+                model=MODEL_ID,
+                tools=[get_customer_profile],
+                max_steps=10,
+                stream=True,
+            )
 
-        yield sse("run_started", {"customer_id": customer_id, "ts": time.time()})
+            yield sse("run_started", {"customer_id": customer_id, "ts": time.time()})
 
-        seen_tool_call_ids = set()
+            seen_tool_call_ids = set()
 
-        async for event in stream:
-            # normalize event
-            try:
-                evt = event.model_dump()
-            except Exception:
-                evt = jsonable_encoder(event)
+            async for event in stream:
+                # normalize event
+                try:
+                    evt = event.model_dump()
+                except Exception:
+                    evt = jsonable_encoder(event)
 
-            if isinstance(evt, dict) and evt.get("choices"):
-                delta = (evt["choices"][0].get("delta") or {})
+                if isinstance(evt, dict) and evt.get("choices"):
+                    delta = (evt["choices"][0].get("delta") or {})
 
-                # 1) text
-                content = delta.get("content")
-                if content:
-                    yield sse("token", {"delta": content})
+                    # 1) text
+                    content = delta.get("content")
+                    if content:
+                        yield sse("token", {"delta": content})
 
-                # 2) tool calls (dedupe by tool_call.id)
-                tool_calls = delta.get("tool_calls") or []
-                for tc in tool_calls:
-                    tc_id = tc.get("id")
-                    fn = (tc.get("function") or {})
-                    name = fn.get("name")
+                    # 2) tool calls (dedupe by tool_call.id)
+                    tool_calls = delta.get("tool_calls") or []
+                    for tc in tool_calls:
+                        tc_id = tc.get("id")
+                        fn = (tc.get("function") or {})
+                        name = fn.get("name")
 
-                    if tc_id and tc_id not in seen_tool_call_ids:
-                        seen_tool_call_ids.add(tc_id)
-                        yield sse("tool_call_started", {
-                            "id": tc_id,
-                            "tool": name,
-                            "ts": time.time(),
-                        })
+                        if tc_id and tc_id not in seen_tool_call_ids:
+                            seen_tool_call_ids.add(tc_id)
+                            yield sse("tool_call_started", {
+                                "id": tc_id,
+                                "tool": name,
+                                "ts": time.time(),
+                            })
 
-        yield sse("run_finished", {"customer_id": customer_id, "ts": time.time()})
+            yield sse("run_finished", {"customer_id": customer_id, "ts": time.time()})
+        
+        except Exception as e:
+            print(f"Error in event generator: {e}")
+            yield sse("error", {"message": str(e)})
 
     return StreamingResponse(
         event_generator(),
