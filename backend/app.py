@@ -1,5 +1,8 @@
 # app.py
 import os 
+from dotenv import load_dotenv
+
+load_dotenv() 
 import asyncio
 import httpx
 from dedalus_labs import AsyncDedalus
