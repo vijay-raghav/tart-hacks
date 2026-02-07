@@ -65,7 +65,7 @@ export default function Home() {
   const [analysisResults, setAnalysisResults] = useState<Record<string, AnalysisResult>>({});
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
 
-  const API_URL = 'https://sentinel-gva5.onrender.com'; // 'http://127.0.0.1:8000'; 
+  const API_URL = 'http://127.0.0.1:8000'; // 'https://sentinel-gva5.onrender.com';
 
   // Derived State for Current View
   const currentResult = analysisResults[selectedUser];
@@ -142,6 +142,21 @@ export default function Home() {
           if (msg.event === "token") {
             accumulatedText += msg.data?.delta ?? "";
 
+            // Check for JSON block at the end (Restored Logic)
+            const jsonMatch = accumulatedText.match(/```json\n([\s\S]*?)\n```/);
+            let displayText = accumulatedText;
+            let newSummaryData = null;
+
+            if (jsonMatch) {
+              try {
+                newSummaryData = JSON.parse(jsonMatch[1]);
+                // Remove JSON from display text so it doesn't clutter the UI
+                displayText = accumulatedText.replace(jsonMatch[0], "").trim();
+              } catch (e) {
+                // Incomplete JSON, ignore until complete
+              }
+            }
+
             setAnalysisResults(prev => {
               const cur: AnalysisResult = prev[customerId] ?? {
                 analysis: { summary: "", confidence: 0, articles: [] },
@@ -153,7 +168,9 @@ export default function Home() {
                 ...prev,
                 [customerId]: {
                   ...cur,
-                  analysis: { ...cur.analysis, summary: accumulatedText }
+                  analysis: { ...cur.analysis, summary: displayText },
+                  // Update summary if we successfully parsed it
+                  summary: newSummaryData || cur.summary
                 }
               };
             });
