@@ -95,8 +95,20 @@ At the very end of your response, you MUST output a single valid JSON block (sur
   "date": "Today's date (YYYY-MM-DD)",
   "status": "Positive" or "Negative" (Use Positive if adverse media is found/escalated, Negative if clear/false positive),
   "match_score": "A score from 0-100 indicating how strong the match is",
-  "description": "A very concise 1-sentence summary of the finding."
+  "description": "A very concise 1-sentence summary of the finding.",
+  "articles": [
+    {
+      "source": "Source name (e.g., Chicago Tribune)",
+      "date": "YYYY-MM-DD",
+      "url": "https://full-article-url",
+      "snippet": "Brief excerpt from the article (1-2 sentences max)",
+      "sentiment": "Positive|Negative|Neutral",
+      "relevanceScore": 0-100
+    }
+  ]
 }
+
+IMPORTANT: Only include articles if status is "Positive". For "Negative" (false positive), use an empty articles array [].
 
 CRITICAL RULE: If the Search Tool returns 0 results, you CANNOT clear the subject. You must return Verdict: 'MANUAL REVIEW'. Reason: 'Insufficient external data to verify identity.
 """
